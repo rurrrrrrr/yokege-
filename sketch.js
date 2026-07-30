@@ -7,6 +7,10 @@ let bubbleY;
 let bubbleRadius;
 let bubbleSpeedX;
 let bubbleSpeedY;
+let bubbleAlive;
+let startTime;
+let scoreTime;
+let bubbleHitCount;
 
 function setup() {
     createCanvas(500, 500);
@@ -21,6 +25,7 @@ function setup() {
     bubbleRadius = [];
     bubbleSpeedX = [];
     bubbleSpeedY = [];
+    bubbleAlive = [];
     for (let i = 0; i < 10; i++) {
         // プレイヤーから少し離れた位置に出す
         let x = random(0, width);
@@ -32,9 +37,13 @@ function setup() {
         bubbleX.push(x);
         bubbleY.push(y);
         bubbleRadius.push(random(20, 40));
-        bubbleSpeedX.push(random(-2, 2));
-        bubbleSpeedY.push(random(-2, 2));
+        bubbleSpeedX.push(random(-4, 4));
+        bubbleSpeedY.push(random(-4, 4));
+        bubbleAlive.push(true);
     }
+
+    startTime= millis();
+    bubbleHitCount = 0;
 }
 
 function draw() {
@@ -51,22 +60,79 @@ function draw() {
 
     if (mode == 1) {
         // プレイヤーをキーボードで動かす (02)
+        if (keyIsDown(LEFT_ARROW)) {
+            playerX = playerX - 7;
+        }
+        if (keyIsDown(RIGHT_ARROW)) {
+            playerX = playerX + 7;
+        }
+        if (keyIsDown(UP_ARROW)) {
+            playerY = playerY - 7;
+        }
+        if (keyIsDown(DOWN_ARROW))  {
+            playerY = playerY + 7;
+        }
 
         // シャボン玉を等速で動かし、画面の外に出たら反対側から出てくる (03)
+        for (let i = 0; i < bubbleX.length; i++) {
+            if (!bubbleAlive[i]) {
+                continue;
+            }
 
-        // シャボン玉に触れたらゲームオーバー (04)
+            bubbleX[i] = bubbleX[i] + bubbleSpeedX[i];
+            bubbleY[i] = bubbleY[i] + bubbleSpeedY[i];
+
+            if (bubbleX[i] < 0) {
+                bubbleX[i] = width
+            }
+            if (bubbleX[i] > width) {
+                bubbleX[i] = 0;
+            }
+            if (bubbleY[i] < 0) {
+                bubbleY[i] = height;
+            }
+            if (bubbleY[i] > height) {
+                bubbleY[i] = 0;
+            }
+        }
+        // シャボン玉に触れたら割れて、3回割れたらゲームオーバー (04)
+        for (let i = 0; i < bubbleX.length; i++) {
+            if (!bubbleAlive[i]) {
+                continue;
+            }
+
+            if (
+                dist(playerX, playerY,bubbleX[i],bubbleY[i]) <
+                playerRadius + bubbleRadius[i]
+            ) {
+                bubbleAlive[i] = false;
+                bubbleHitCount = bubbleHitCount + 1;
+                if (bubbleHitCount >= 3) {
+                    scoreTime = floor((millis() - startTime) / 1000);
+                    mode = 2;
+                }
+            }
+        }
 
         // プレイヤーを表示する
         fill(255, 100, 150);
         noStroke();
         circle(playerX, playerY, playerRadius * 2);
 
+        // 残りのヒット回数を表示する
+        fill(0);
+        textAlign(LEFT);
+        textSize(14);
+        text("残り: " + (3 - bubbleHitCount), 10, 25);
+
         // シャボン玉を表示する
         noFill();
         stroke(255);
         strokeWeight(2);
         for (let i = 0; i < bubbleX.length; i++) {
-            circle(bubbleX[i], bubbleY[i], bubbleRadius[i] * 2);
+            if (bubbleAlive[i]) {
+                circle(bubbleX[i], bubbleY[i], bubbleRadius[i] * 2);
+            }
         }
     }
 
@@ -77,7 +143,16 @@ function draw() {
         textAlign(CENTER);
         text("ゲームオーバー", width / 2, height / 2 - 20);
         text("スペースキーでスタート画面に戻る", width / 2, height / 2 + 20);
+        drawScore();
     }
+}
+
+
+function drawScore() {
+    fill ("black");
+    textAlign(LEFT);
+    textSize(14);
+    text("SCORE: " + scoreTime,width - 120,25)
 }
 
 function keyPressed() {
